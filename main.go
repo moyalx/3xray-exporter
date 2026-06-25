@@ -29,6 +29,10 @@ import (
 	"github.com/yourusername/3xui-exporter/config"
 )
 
+// version is the exporter version. It is overridden at build time via
+// -ldflags "-X main.version=<tag>" (see Dockerfile and release build).
+var version = "dev"
+
 func main() {
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
@@ -89,6 +93,7 @@ func main() {
 
 	go func() {
 		log.Info("starting 3X-UI exporter",
+			"version", version,
 			"listen_addr", cfg.ListenAddr,
 			"metrics_path", cfg.MetricsPath,
 			"panel", cfg.XUIURI,

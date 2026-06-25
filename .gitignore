@@ -1,6 +1,7 @@
 # Binaries
 /3xui-exporter
 /out/
+/dist/
 *.exe
 
 # Local environment
