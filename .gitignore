@@ -1,0 +1,17 @@
+# Binaries
+/3xui-exporter
+/out/
+*.exe
+
+# Local environment
+.env
+
+# Go
+*.test
+*.out
+vendor/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
