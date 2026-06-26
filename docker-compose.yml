@@ -1,0 +1,52 @@
+# Docker Compose deployment for the 3X-UI Prometheus exporter.
+#
+# Quick start on the server:
+#   1. cp .env.example .env       # then edit credentials in .env
+#   2. docker compose pull        # fetch moyalx/3xray-exporter:latest
+#   3. docker compose up -d
+#   4. curl http://127.0.0.1:9808/metrics
+#
+# Networking:
+#   This uses host networking because a standard 3X-UI install runs the panel
+#   and Xray-core directly on the host. Host mode lets the exporter reach
+#   127.0.0.1:2053 (panel) and 127.0.0.1:11111 (Xray expvar) directly, and it
+#   serves metrics on host port 9808 (from LISTEN_ADDR). If your panel runs in
+#   another container instead, see the commented "bridge mode" block below.
+
+services:
+  3xray-exporter:
+    image: moyalx/3xray-exporter:latest
+    container_name: 3xray-exporter
+    restart: unless-stopped
+
+    # Share the host network namespace so 127.0.0.1 points at the host's
+    # 3X-UI panel and Xray expvar endpoint. Port mappings are ignored in this
+    # mode; the exporter listens on whatever LISTEN_ADDR specifies (:9808).
+    network_mode: host
+
+    # Load XUI_URI / XUI_USERNAME / XUI_PASSWORD / etc. from a local .env file.
+    env_file:
+      - .env
+
+    # Hardening: the binary needs no write access and no extra privileges.
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ---------------------------------------------------------------------------
+# Alternative: bridge mode (use this INSTEAD of network_mode: host above when
+# the 3X-UI panel is reachable over the network rather than on localhost,
+# e.g. another container or a remote host). Remove the `network_mode: host`
+# line and uncomment the block below, then point XUI_URI/XRAY_METRICS_URI in
+# .env at the right address (use host.docker.internal for the Docker host).
+#
+#    ports:
+#      - "9808:9808"
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+# ---------------------------------------------------------------------------

@@ -42,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	xui, err := client.NewXUIClient(cfg.XUIURI, cfg.XUIUsername, cfg.XUIPassword, cfg.Timeout, cfg.InsecureSkipVerify)
+	xui, err := client.NewXUIClient(cfg.XUIURI, cfg.XUIUsername, cfg.XUIPassword, cfg.XUIAPIToken, cfg.Timeout, cfg.InsecureSkipVerify)
 	if err != nil {
 		log.Error("failed to create 3X-UI client", "err", err)
 		os.Exit(1)
@@ -92,11 +92,16 @@ func main() {
 	defer stop()
 
 	go func() {
+		authMode := "username/password"
+		if cfg.XUIAPIToken != "" {
+			authMode = "api-token"
+		}
 		log.Info("starting 3X-UI exporter",
 			"version", version,
 			"listen_addr", cfg.ListenAddr,
 			"metrics_path", cfg.MetricsPath,
 			"panel", cfg.XUIURI,
+			"auth_mode", authMode,
 			"xray_enabled", xray != nil,
 		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

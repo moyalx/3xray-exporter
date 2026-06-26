@@ -51,14 +51,26 @@ Configuration is via environment variables only.
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `XUI_URI` | yes | – | Panel base URL, e.g. `http://127.0.0.1:2053` (include base path if set) |
-| `XUI_USERNAME` | yes | – | Panel username |
-| `XUI_PASSWORD` | yes | – | Panel password |
+| `XUI_URI` | yes | – | Panel base URL, e.g. `http://127.0.0.1:2053` (include the web base path if set) |
+| `XUI_API_TOKEN` | one of* | – | Panel API token (Bearer). **Recommended** for v3+. From Settings → Security → API Token |
+| `XUI_USERNAME` | one of* | – | Panel username (used only if `XUI_API_TOKEN` is empty) |
+| `XUI_PASSWORD` | one of* | – | Panel password (used only if `XUI_API_TOKEN` is empty) |
 | `XRAY_METRICS_URI` | no | – | Xray expvar URL, e.g. `http://127.0.0.1:11111/debug/vars` (empty disables) |
 | `LISTEN_ADDR` | no | `:9808` | Exporter bind address |
 | `METRICS_PATH` | no | `/metrics` | Metrics HTTP path |
 | `HTTP_TIMEOUT` | no | `10s` | Per-request timeout |
 | `INSECURE_SKIP_VERIFY` | no | `false` | Skip TLS verification (self-signed panel certs) |
+
+\* Configure **either** `XUI_API_TOKEN` **or** both `XUI_USERNAME` + `XUI_PASSWORD`.
+
+### Authentication (3X-UI v3+)
+
+The panel supports two auth modes; this exporter handles both:
+
+- **API token (recommended).** Create one in the panel under **Settings → Security → API Token** and set `XUI_API_TOKEN`. It is sent as `Authorization: Bearer <token>` on every `/panel/api/*` request and **bypasses the panel's CSRF protection**, so no `/login` round-trip happens. When set, the username/password are ignored.
+- **Username / password.** If you only set `XUI_USERNAME`/`XUI_PASSWORD`, the exporter logs in via `/login`. Because v3 guards `/login` (and unsafe API calls) with CSRF, the exporter automatically mints a token from `/csrf-token` and replays it in the `X-CSRF-Token` header. (A bare username/password POST without this returns **HTTP 403**.)
+
+> If your panel uses a custom web base path, include it in `XUI_URI` (e.g. `https://host:2053/myrandompath`). Otherwise requests hit `404`.
 
 ## Running
 

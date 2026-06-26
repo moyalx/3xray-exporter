@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +17,22 @@ import (
 	"sync"
 	"time"
 )
+
+// userAgent is sent on every request. Some panels sit behind a WAF/CDN that
+// rejects requests with an empty or default Go user agent.
+const userAgent = "3xui-exporter"
+
+// httpStatusError carries the HTTP status of a non-2xx panel response so
+// callers can branch on it (e.g. fall back to a legacy endpoint on 404).
+type httpStatusError struct {
+	status int
+	method string
+	path   string
+}
+
+func (e *httpStatusError) Error() string {
+	return fmt.Sprintf("panel %s %s returned HTTP %d", e.method, e.path, e.status)
+}
 
 // ---------------------------------------------------------------------------
 // API response models
@@ -69,26 +86,36 @@ type ClientTraffic struct {
 	Reset      int    `json:"reset"`
 }
 
-// XUIClient is a thread-safe client for the 3X-UI panel API. It manages a
-// session cookie obtained via /login and transparently re-authenticates when
-// the panel responds with 401 Unauthorized.
+// XUIClient is a thread-safe client for the 3X-UI panel API.
+//
+// It supports the two authentication modes of 3X-UI v3+:
+//
+//   - Bearer token (recommended): when apiToken is set, every /panel/api/*
+//     request carries "Authorization: Bearer <token>", which bypasses the
+//     panel's CSRF protection. No /login is performed.
+//   - Session cookie: when only username/password are set, it logs in via
+//     /login. Because v3 guards /login (and unsafe API methods) with CSRF, the
+//     client first mints a CSRF token from /csrf-token and replays it in the
+//     X-CSRF-Token header.
 type XUIClient struct {
 	baseURL  string
 	username string
 	password string
+	apiToken string
 
 	http *http.Client
 
-	// mu guards the authentication flow so concurrent scrapes do not trigger
-	// multiple simultaneous logins. The cookie itself lives in the http
-	// client's cookie jar.
+	// mu guards the session auth flow so concurrent scrapes do not trigger
+	// multiple simultaneous logins. The cookie lives in the http client's jar.
 	mu            sync.Mutex
 	authenticated bool
+	csrfToken     string
 }
 
-// NewXUIClient builds a panel client. The cookie jar persists the session
-// cookie returned by /login across subsequent requests automatically.
-func NewXUIClient(baseURL, username, password string, timeout time.Duration, insecure bool) (*XUIClient, error) {
+// NewXUIClient builds a panel client. If apiToken is non-empty the client uses
+// Bearer-token auth; otherwise it falls back to username/password session auth.
+// The cookie jar persists the session cookie across requests automatically.
+func NewXUIClient(baseURL, username, password, apiToken string, timeout time.Duration, insecure bool) (*XUIClient, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating cookie jar: %w", err)
@@ -102,6 +129,7 @@ func NewXUIClient(baseURL, username, password string, timeout time.Duration, ins
 		baseURL:  strings.TrimRight(baseURL, "/"),
 		username: username,
 		password: password,
+		apiToken: apiToken,
 		http: &http.Client{
 			Timeout:   timeout,
 			Jar:       jar,
@@ -110,9 +138,19 @@ func NewXUIClient(baseURL, username, password string, timeout time.Duration, ins
 	}, nil
 }
 
+// usingToken reports whether the client authenticates with a Bearer token.
+func (c *XUIClient) usingToken() bool { return c.apiToken != "" }
+
 // login authenticates against /login and stores the returned session cookie in
-// the client's cookie jar. It is safe to call concurrently.
+// the client's cookie jar. On v3+ it first mints a CSRF token and sends it in
+// the X-CSRF-Token header, otherwise the panel rejects the POST with 403.
+// It must be called with c.mu held.
 func (c *XUIClient) login(ctx context.Context) error {
+	// Mint a CSRF token (this also seeds the session cookie in the jar). Older
+	// panels (pre-v3) have no /csrf-token endpoint and no CSRF requirement, so
+	// a failure here is non-fatal: we simply proceed without a token.
+	csrf, _ := c.fetchCSRF(ctx)
+
 	form := url.Values{}
 	form.Set("username", c.username)
 	form.Set("password", c.password)
@@ -123,6 +161,11 @@ func (c *XUIClient) login(ctx context.Context) error {
 		return fmt.Errorf("building login request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+	if csrf != "" {
+		req.Header.Set("X-CSRF-Token", csrf)
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -131,7 +174,7 @@ func (c *XUIClient) login(ctx context.Context) error {
 	defer drainAndClose(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("login returned HTTP %d", resp.StatusCode)
+		return fmt.Errorf("login returned HTTP %d (a 403 usually means a CSRF/credentials problem)", resp.StatusCode)
 	}
 
 	var out apiResponse
@@ -142,19 +185,74 @@ func (c *XUIClient) login(ctx context.Context) error {
 		return fmt.Errorf("login rejected by panel: %s", out.Msg)
 	}
 
-	// The session cookie is now stored in the jar by the http client.
+	// The session cookie is now stored in the jar; keep the CSRF token so we
+	// can attach it to unsafe (POST) API requests during this session.
+	c.csrfToken = csrf
 	c.authenticated = true
 	return nil
 }
 
-// ensureAuth guarantees a valid session exists before issuing a request.
+// fetchCSRF retrieves a CSRF token from GET /csrf-token. The envelope's obj
+// field holds the token string. Returns an empty string (and error) if the
+// endpoint is absent, which is expected on pre-v3 panels.
+func (c *XUIClient) fetchCSRF(ctx context.Context) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/csrf-token", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer drainAndClose(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", &httpStatusError{status: resp.StatusCode, method: http.MethodGet, path: "/csrf-token"}
+	}
+
+	var env apiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&env); err != nil {
+		return "", err
+	}
+	var token string
+	_ = json.Unmarshal(env.Obj, &token)
+	return token, nil
+}
+
+// ensureAuth guarantees the client can authenticate before issuing a request.
+// In token mode this is a no-op; in session mode it logs in once.
 func (c *XUIClient) ensureAuth(ctx context.Context) error {
+	if c.usingToken() {
+		return nil
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.authenticated {
 		return nil
 	}
 	return c.login(ctx)
+}
+
+// applyAuthHeaders sets auth-related headers on an outbound API request.
+//   - Token mode: Authorization: Bearer <token> (also bypasses CSRF).
+//   - Session mode: X-CSRF-Token on unsafe methods (POST/PUT/DELETE/PATCH).
+func (c *XUIClient) applyAuthHeaders(req *http.Request) {
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("User-Agent", userAgent)
+	if c.usingToken() {
+		req.Header.Set("Authorization", "Bearer "+c.apiToken)
+		return
+	}
+	switch req.Method {
+	case http.MethodGet, http.MethodHead, http.MethodOptions:
+		// Safe methods are not CSRF-protected.
+	default:
+		if c.csrfToken != "" {
+			req.Header.Set("X-CSRF-Token", c.csrfToken)
+		}
+	}
 }
 
 // getJSON performs an authenticated request to the given panel path and decodes
@@ -173,14 +271,16 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 		return err
 	}
 
-	// Cookie expired: force a fresh login and retry exactly once.
-	if status == http.StatusUnauthorized {
+	// Session expiry (401) or CSRF rejection (403): in session mode, force a
+	// fresh login + CSRF token and retry exactly once. In token mode a 401/403
+	// means the token is invalid/disabled, so retrying would not help.
+	if (status == http.StatusUnauthorized || status == http.StatusForbidden) && !c.usingToken() {
 		c.mu.Lock()
 		c.authenticated = false
 		err = c.login(ctx)
 		c.mu.Unlock()
 		if err != nil {
-			return fmt.Errorf("re-authenticating after 401: %w", err)
+			return fmt.Errorf("re-authenticating after HTTP %d: %w", status, err)
 		}
 		if body, status, err = c.do(ctx, method, path); err != nil {
 			return err
@@ -188,7 +288,7 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 	}
 
 	if status != http.StatusOK {
-		return fmt.Errorf("panel %s %s returned HTTP %d", method, path, status)
+		return &httpStatusError{status: status, method: method, path: path}
 	}
 
 	var env apiResponse
@@ -207,13 +307,15 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 	return nil
 }
 
-// do issues a single HTTP request and returns the raw body and status code.
+// do issues a single authenticated HTTP request and returns the raw body and
+// status code.
 func (c *XUIClient) do(ctx context.Context, method, path string) ([]byte, int, error) {
 	endpoint := c.baseURL + path
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("building request for %s: %w", path, err)
 	}
+	c.applyAuthHeaders(req)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -239,10 +341,20 @@ func (c *XUIClient) Inbounds(ctx context.Context) ([]Inbound, error) {
 }
 
 // OnlineClients returns the list of client emails currently considered online
-// by the panel. Endpoint: POST /panel/api/inbounds/onlines.
+// by the panel. The endpoint moved in v3 to POST /panel/api/clients/onlines;
+// if that 404s (older panel) we fall back to the legacy
+// POST /panel/api/inbounds/onlines path.
 func (c *XUIClient) OnlineClients(ctx context.Context) ([]string, error) {
 	var emails []string
-	if err := c.getJSON(ctx, http.MethodPost, "/panel/api/inbounds/onlines", &emails); err != nil {
+	err := c.getJSON(ctx, http.MethodPost, "/panel/api/clients/onlines", &emails)
+	if err != nil {
+		var statusErr *httpStatusError
+		if errors.As(err, &statusErr) && statusErr.status == http.StatusNotFound {
+			emails = nil
+			if err = c.getJSON(ctx, http.MethodPost, "/panel/api/inbounds/onlines", &emails); err == nil {
+				return emails, nil
+			}
+		}
 		return nil, err
 	}
 	return emails, nil
