@@ -45,8 +45,12 @@ services:
       GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
-      # Set this to your public URL if you put Grafana behind a domain/reverse proxy.
-      GF_SERVER_ROOT_URL: ${GF_ROOT_URL:-}
+      # Public URL of Grafana. MUST include a scheme (http:// or https://) and a
+      # trailing slash, e.g. https://mon.example.com/ . A bare hostname like
+      # "mon.example.com" is parsed as a URL *path* and causes an infinite
+      # /host/host/host/login redirect loop. Defaults to localhost, which is
+      # safe for direct IP access (the UI uses relative redirects).
+      GF_SERVER_ROOT_URL: ${GF_ROOT_URL:-http://localhost:3000/}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
