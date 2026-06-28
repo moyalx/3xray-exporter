@@ -1,0 +1,14 @@
+apiVersion: 1
+
+providers:
+  - name: 3xui
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      # Dashboards are mounted here by docker-compose; kept separate from the
+      # provisioning YAML so Grafana doesn't try to parse this file as a board.
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false

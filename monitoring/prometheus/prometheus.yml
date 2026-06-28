@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # The 3X-UI exporter. It runs on the host (host networking) on :1819, so we
+  # reach it from this container via the Docker host gateway. Change the target
+  # if your exporter binds to a different host/port (LISTEN_ADDR).
+  - job_name: 3xui-exporter
+    static_configs:
+      - targets: ["host.docker.internal:1819"]
+
+  # Prometheus scraping itself (handy for stack health).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
