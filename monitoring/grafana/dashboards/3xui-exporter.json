@@ -9,7 +9,20 @@
   "timezone": "browser",
   "title": "3X-UI Exporter",
   "uid": "3xui-exporter",
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "max_delay_ms",
+        "label": "Max delay (ms)",
+        "description": "Outbound probe delays above this are treated as a failed check and excluded from latency panels.",
+        "type": "textbox",
+        "query": "10000",
+        "current": { "text": "10000", "value": "10000" },
+        "options": [ { "text": "10000", "value": "10000", "selected": true } ],
+        "hide": 0
+      }
+    ]
+  },
   "panels": [
     {
       "id": 100,
@@ -117,13 +130,13 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 } ] } }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 } ] } }, "overrides": [] }
     },
     {
       "id": 21,
@@ -132,13 +145,13 @@
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 700 } ] } }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 700 } ] } }, "overrides": [] }
     },
     {
       "id": 22,
@@ -147,13 +160,13 @@
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] }
+      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] }
     },
     {
       "id": 23,
@@ -200,8 +213,8 @@
       "gridPos": { "h": 8, "w": 16, "x": 8, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_delay_ms", "legendFormat": "{{outbound_tag}}" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms)", "legendFormat": "average" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_delay_ms <= $max_delay_ms", "legendFormat": "{{outbound_tag}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "average" }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": {
@@ -218,9 +231,9 @@
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms)", "legendFormat": "avg latency" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms)", "legendFormat": "max latency" },
-        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms)", "legendFormat": "min latency" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "avg latency" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "max latency" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "min latency" }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
