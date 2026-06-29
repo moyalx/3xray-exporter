@@ -12,6 +12,20 @@
   "templating": {
     "list": [
       {
+        "name": "node",
+        "label": "Node",
+        "description": "Select which 3X-UI exporter (Prometheus job) to view.",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(xui_exporter_up, job)",
+        "query": { "qryType": 1, "query": "label_values(xui_exporter_up, job)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "refresh": 1,
+        "sort": 1,
+        "includeAll": false,
+        "multi": false,
+        "current": {}
+      },
+      {
         "name": "max_delay_ms",
         "label": "Max delay (ms)",
         "description": "Outbound probe delays above this are treated as a failed check and excluded from latency panels.",
@@ -40,7 +54,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_exporter_up" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_exporter_up{job=~\"$node\"}" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -63,7 +77,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total{job=~\"$node\"}" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -78,7 +92,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "count(xui_user_enabled == 1)", "instant": true }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "count(xui_user_enabled{job=~\"$node\"} == 1)", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -93,7 +107,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xui_inbound_up_bytes) + sum(xui_inbound_down_bytes)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xui_inbound_up_bytes{job=~\"$node\"}) + sum(xui_inbound_down_bytes{job=~\"$node\"})" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -108,7 +122,7 @@
       "gridPos": { "h": 6, "w": 24, "x": 0, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total", "legendFormat": "online" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total{job=~\"$node\"}", "legendFormat": "online" }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single", "sort": "none" } },
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never" } }, "overrides": [] }
@@ -130,7 +144,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -145,7 +159,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -160,7 +174,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms <= $max_delay_ms)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -175,7 +189,7 @@
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xray_observatory_outbound_alive)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xray_observatory_outbound_alive{job=~\"$node\"})" }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -190,7 +204,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive", "legendFormat": "{{outbound_tag}}", "instant": true }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
@@ -213,8 +227,8 @@
       "gridPos": { "h": 8, "w": 16, "x": 8, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_delay_ms <= $max_delay_ms", "legendFormat": "{{outbound_tag}}" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "average" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms", "legendFormat": "{{outbound_tag}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "average" }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max", "lastNotNull"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": {
@@ -231,9 +245,9 @@
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "avg latency" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "max latency" },
-        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms <= $max_delay_ms)", "legendFormat": "min latency" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "avg latency" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "max latency" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "min latency" }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
@@ -245,7 +259,7 @@
       "gridPos": { "h": 7, "w": 12, "x": 12, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive", "legendFormat": "{{outbound_tag}}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}" }
       ],
       "options": { "showValue": "never", "mergeValues": true, "alignValue": "center", "rowHeight": 0.9, "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single", "sort": "none" } },
       "fieldConfig": {
@@ -276,8 +290,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_down_bytes[$__rate_interval])", "legendFormat": "{{inbound_tag}} down" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_up_bytes[$__rate_interval])", "legendFormat": "{{inbound_tag}} up" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_down_bytes{job=~\"$node\"}[$__rate_interval])", "legendFormat": "{{inbound_tag}} down" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_up_bytes{job=~\"$node\"}[$__rate_interval])", "legendFormat": "{{inbound_tag}} up" }
       ],
       "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
@@ -289,7 +303,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "topk(20, max by (email) (xui_user_traffic_used_bytes))", "instant": true, "format": "table" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "topk(20, max by (email) (xui_user_traffic_used_bytes{job=~\"$node\"}))", "instant": true, "format": "table" }
       ],
       "transformations": [
         { "id": "organize", "options": { "excludeByName": { "Time": true }, "indexByName": {}, "renameByName": { "email": "Client", "Value": "Used" } } },
@@ -314,9 +328,9 @@
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 41 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_alloc_bytes", "legendFormat": "alloc" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_sys_bytes", "legendFormat": "sys" },
-        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_heap_inuse_bytes", "legendFormat": "heap in-use" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_alloc_bytes{job=~\"$node\"}", "legendFormat": "alloc" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_sys_bytes{job=~\"$node\"}", "legendFormat": "sys" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_heap_inuse_bytes{job=~\"$node\"}", "legendFormat": "heap in-use" }
       ],
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
       "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
