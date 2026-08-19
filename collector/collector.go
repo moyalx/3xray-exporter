@@ -8,6 +8,7 @@ package collector
 import (
 	"context"
 	"log/slog"
+	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -46,12 +47,13 @@ type Collector struct {
 	inboundDown      *prometheus.Desc
 
 	// --- xray engine metrics (xray_) ---
-	obsAlive *prometheus.Desc
-	obsDelay *prometheus.Desc
-	memAlloc *prometheus.Desc
-	memSys   *prometheus.Desc
-	memHeap  *prometheus.Desc
-	memNumGC *prometheus.Desc
+	obsAlive    *prometheus.Desc
+	obsDelay    *prometheus.Desc
+	obsSelected *prometheus.Desc
+	memAlloc    *prometheus.Desc
+	memSys      *prometheus.Desc
+	memHeap     *prometheus.Desc
+	memNumGC    *prometheus.Desc
 }
 
 // New constructs a Collector. xray may be nil to disable the Xray data source.
@@ -119,6 +121,11 @@ func New(xui *client.XUIClient, xray *client.XrayClient, timeout time.Duration, 
 			"Round-trip latency of the outbound in milliseconds as measured by the observatory.",
 			[]string{"outbound_tag"}, nil,
 		),
+		obsSelected: prometheus.NewDesc(
+			namespaceXray+"_observatory_outbound_selected",
+			"1 if this outbound would be chosen by leastPing (lowest delay among alive outbounds), 0 otherwise. Alive non-selected outbounds are fallback/standby.",
+			[]string{"outbound_tag"}, nil,
+		),
 		memAlloc: prometheus.NewDesc(
 			namespaceXray+"_core_memory_alloc_bytes",
 			"Bytes of allocated heap objects in the Xray-core process (memstats.Alloc).",
@@ -157,6 +164,7 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.inboundDown
 	ch <- c.obsAlive
 	ch <- c.obsDelay
+	ch <- c.obsSelected
 	ch <- c.memAlloc
 	ch <- c.memSys
 	ch <- c.memHeap
@@ -268,14 +276,23 @@ func (c *Collector) collectXray(ctx context.Context, ch chan<- prometheus.Metric
 		return err
 	}
 
+	// Mirror Xray leastPing: among alive outbounds, the one with the lowest
+	// probe delay is the live/selected target; other alive ones are fallback.
+	selectedTag := ""
+	minDelay := int64(math.MaxInt64)
 	for tag, status := range vars.Observatory {
-		// Prefer the tag embedded in the status if the map key is empty.
-		outboundTag := tag
-		if outboundTag == "" {
-			outboundTag = status.OutboundTag
+		outboundTag := observatoryTag(tag, status)
+		if status.Alive && (selectedTag == "" || status.Delay < minDelay) {
+			selectedTag = outboundTag
+			minDelay = status.Delay
 		}
+	}
+
+	for tag, status := range vars.Observatory {
+		outboundTag := observatoryTag(tag, status)
 		ch <- prometheus.MustNewConstMetric(c.obsAlive, prometheus.GaugeValue, boolToFloat(status.Alive), outboundTag)
 		ch <- prometheus.MustNewConstMetric(c.obsDelay, prometheus.GaugeValue, float64(status.Delay), outboundTag)
+		ch <- prometheus.MustNewConstMetric(c.obsSelected, prometheus.GaugeValue, boolToFloat(outboundTag == selectedTag && selectedTag != ""), outboundTag)
 	}
 
 	ms := vars.MemStats
@@ -285,6 +302,14 @@ func (c *Collector) collectXray(ctx context.Context, ch chan<- prometheus.Metric
 	ch <- prometheus.MustNewConstMetric(c.memNumGC, prometheus.CounterValue, float64(ms.NumGC))
 
 	return nil
+}
+
+// observatoryTag prefers the map key, falling back to the status's own tag.
+func observatoryTag(mapKey string, status client.ObservatoryStatus) string {
+	if mapKey != "" {
+		return mapKey
+	}
+	return status.OutboundTag
 }
 
 // inboundLabel returns a stable, human-friendly identifier for an inbound,

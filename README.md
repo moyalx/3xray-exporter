@@ -33,6 +33,7 @@ interval:
 | --- | --- | --- | --- |
 | `xray_observatory_outbound_alive` | Gauge | `outbound_tag` | 1 if outbound is healthy |
 | `xray_observatory_outbound_delay_ms` | Gauge | `outbound_tag` | Outbound RTT latency (ms) |
+| `xray_observatory_outbound_selected` | Gauge | `outbound_tag` | 1 if this outbound is the leastPing live target (lowest delay among alive); other alive outbounds are fallback/standby |
 | `xray_core_memory_alloc_bytes` | Gauge | – | Allocated heap bytes (`memstats.Alloc`) |
 | `xray_core_memory_sys_bytes` | Gauge | – | Memory obtained from OS (`memstats.Sys`) |
 | `xray_core_memory_heap_inuse_bytes` | Gauge | – | In-use heap bytes (`memstats.HeapInuse`) |
