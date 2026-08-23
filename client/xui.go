@@ -86,6 +86,63 @@ type ClientTraffic struct {
 	Reset      int    `json:"reset"`
 }
 
+// Balancer is one routing balancer from the Xray template
+// (routing.balancers). Selector entries are outbound-tag prefixes.
+type Balancer struct {
+	Tag         string            `json:"tag"`
+	Selector    []string          `json:"selector"`
+	FallbackTag string            `json:"fallbackTag"`
+	Strategy    *BalancerStrategy `json:"strategy"`
+}
+
+// BalancerStrategy is the selection strategy block on a balancer.
+type BalancerStrategy struct {
+	Type string `json:"type"`
+}
+
+// BalancerLiveStatus is the live view returned by
+// POST /panel/api/xray/balancerStatus (RoutingService.GetBalancerInfo).
+// Selected is the principle-target list (best first); Override is set when an
+// admin forced a target.
+type BalancerLiveStatus struct {
+	Tag      string   `json:"tag"`
+	Running  bool     `json:"running"`
+	Override string   `json:"override"`
+	Selected []string `json:"selected"`
+}
+
+// OutboundTagRef is a minimal outbound entry used to resolve balancer
+// selector prefixes against concrete tags.
+type OutboundTagRef struct {
+	Tag string `json:"tag"`
+}
+
+// XrayTemplate is the editable Xray JSON template stored by the panel.
+type XrayTemplate struct {
+	Outbounds []OutboundTagRef `json:"outbounds"`
+	Routing   *struct {
+		Balancers []Balancer `json:"balancers"`
+	} `json:"routing"`
+}
+
+// XraySettingsPayload is the decoded body of POST /panel/api/xray/.
+// The panel wraps this map as a JSON string inside the standard envelope.
+type XraySettingsPayload struct {
+	XraySetting              XrayTemplate `json:"xraySetting"`
+	SubscriptionOutboundTags []string     `json:"subscriptionOutboundTags"`
+}
+
+// ObservatorySnapshot is one outbound health sample from
+// GET /panel/api/server/xrayObservatory (panel-side cache of expvar).
+type ObservatorySnapshot struct {
+	Tag          string `json:"tag"`
+	Alive        bool   `json:"alive"`
+	Delay        int64  `json:"delay"`
+	LastSeenTime int64  `json:"lastSeenTime"`
+	LastTryTime  int64  `json:"lastTryTime"`
+	UpdatedAt    int64  `json:"updatedAt"`
+}
+
 // XUIClient is a thread-safe client for the 3X-UI panel API.
 //
 // It supports the two authentication modes of 3X-UI v3+:
@@ -262,11 +319,30 @@ func (c *XUIClient) applyAuthHeaders(req *http.Request) {
 // method is the HTTP method; several 3X-UI endpoints expect POST even for
 // read-only operations, so callers specify it explicitly.
 func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interface{}) error {
+	return c.roundTripJSON(ctx, method, path, "", nil, out)
+}
+
+// postFormJSON POSTs application/x-www-form-urlencoded fields and decodes the
+// standard envelope's Obj into out. Used by endpoints that read c.PostForm
+// (e.g. /panel/api/xray/balancerStatus).
+func (c *XUIClient) postFormJSON(ctx context.Context, path string, form url.Values, out interface{}) error {
+	encode := func() io.Reader { return strings.NewReader(form.Encode()) }
+	return c.roundTripJSON(ctx, http.MethodPost, path, "application/x-www-form-urlencoded", encode, out)
+}
+
+// roundTripJSON is the shared authenticated request + envelope decode path.
+// bodyFn, when non-nil, is called for each attempt so form bodies can be resent
+// after a re-auth retry.
+func (c *XUIClient) roundTripJSON(ctx context.Context, method, path, contentType string, bodyFn func() io.Reader, out interface{}) error {
 	if err := c.ensureAuth(ctx); err != nil {
 		return fmt.Errorf("authenticating: %w", err)
 	}
 
-	body, status, err := c.do(ctx, method, path)
+	var reqBody io.Reader
+	if bodyFn != nil {
+		reqBody = bodyFn()
+	}
+	body, status, err := c.do(ctx, method, path, contentType, reqBody)
 	if err != nil {
 		return err
 	}
@@ -282,7 +358,11 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 		if err != nil {
 			return fmt.Errorf("re-authenticating after HTTP %d: %w", status, err)
 		}
-		if body, status, err = c.do(ctx, method, path); err != nil {
+		reqBody = nil
+		if bodyFn != nil {
+			reqBody = bodyFn()
+		}
+		if body, status, err = c.do(ctx, method, path, contentType, reqBody); err != nil {
 			return err
 		}
 	}
@@ -298,7 +378,7 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 	if !env.Success {
 		return fmt.Errorf("panel %s reported failure: %s", path, env.Msg)
 	}
-	if out == nil || len(env.Obj) == 0 {
+	if out == nil || len(env.Obj) == 0 || string(env.Obj) == "null" {
 		return nil
 	}
 	if err := json.Unmarshal(env.Obj, out); err != nil {
@@ -308,14 +388,18 @@ func (c *XUIClient) getJSON(ctx context.Context, method, path string, out interf
 }
 
 // do issues a single authenticated HTTP request and returns the raw body and
-// status code.
-func (c *XUIClient) do(ctx context.Context, method, path string) ([]byte, int, error) {
+// status code. reqBody may be nil. When contentType is non-empty it is set on
+// the request (needed for form POSTs).
+func (c *XUIClient) do(ctx context.Context, method, path, contentType string, reqBody io.Reader) ([]byte, int, error) {
 	endpoint := c.baseURL + path
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, nil)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, reqBody)
 	if err != nil {
 		return nil, 0, fmt.Errorf("building request for %s: %w", path, err)
 	}
 	c.applyAuthHeaders(req)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -358,6 +442,93 @@ func (c *XUIClient) OnlineClients(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return emails, nil
+}
+
+// XraySettings fetches the Xray template (including routing.balancers) via
+// POST /panel/api/xray/. The panel returns obj as a JSON string of a map, so
+// we unwrap that string before decoding.
+func (c *XUIClient) XraySettings(ctx context.Context) (*XraySettingsPayload, error) {
+	var raw json.RawMessage
+	if err := c.getJSON(ctx, http.MethodPost, "/panel/api/xray/", &raw); err != nil {
+		return nil, err
+	}
+
+	// Newer panels nest a JSON string; older ones may return the object directly.
+	payloadBytes := []byte(raw)
+	if len(raw) > 0 && raw[0] == '"' {
+		var asString string
+		if err := json.Unmarshal(raw, &asString); err != nil {
+			return nil, fmt.Errorf("unwrapping xray settings string: %w", err)
+		}
+		payloadBytes = []byte(asString)
+	}
+
+	var payload XraySettingsPayload
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		return nil, fmt.Errorf("decoding xray settings payload: %w", err)
+	}
+
+	// xraySetting itself is sometimes double-encoded as a string in the DB.
+	if err := normalizeXraySetting(&payload, payloadBytes); err != nil {
+		return nil, err
+	}
+	return &payload, nil
+}
+
+// normalizeXraySetting re-parses xraySetting when the outer payload left it
+// empty because the field was a JSON string rather than an object.
+func normalizeXraySetting(payload *XraySettingsPayload, payloadBytes []byte) error {
+	if payload.XraySetting.Routing != nil || len(payload.XraySetting.Outbounds) > 0 {
+		return nil
+	}
+	var probe struct {
+		XraySetting json.RawMessage `json:"xraySetting"`
+	}
+	if err := json.Unmarshal(payloadBytes, &probe); err != nil || len(probe.XraySetting) == 0 {
+		return nil
+	}
+	settingBytes := probe.XraySetting
+	if settingBytes[0] == '"' {
+		var asString string
+		if err := json.Unmarshal(settingBytes, &asString); err != nil {
+			return fmt.Errorf("unwrapping nested xraySetting string: %w", err)
+		}
+		settingBytes = []byte(asString)
+	}
+	if err := json.Unmarshal(settingBytes, &payload.XraySetting); err != nil {
+		return fmt.Errorf("decoding nested xraySetting: %w", err)
+	}
+	return nil
+}
+
+// BalancerStatuses queries live balancer picks from the running core via
+// POST /panel/api/xray/balancerStatus (form field tags=comma,separated).
+func (c *XUIClient) BalancerStatuses(ctx context.Context, tags []string) (map[string]BalancerLiveStatus, error) {
+	if len(tags) == 0 {
+		return map[string]BalancerLiveStatus{}, nil
+	}
+	form := url.Values{}
+	form.Set("tags", strings.Join(tags, ","))
+
+	var byTag map[string]BalancerLiveStatus
+	if err := c.postFormJSON(ctx, "/panel/api/xray/balancerStatus", form, &byTag); err != nil {
+		return nil, err
+	}
+	if byTag == nil {
+		byTag = map[string]BalancerLiveStatus{}
+	}
+	return byTag, nil
+}
+
+// ObservatorySnapshots returns the panel's cached observatory view
+// (GET /panel/api/server/xrayObservatory). Useful when the local expvar
+// observatory map is empty/null.
+func (c *XUIClient) ObservatorySnapshots(ctx context.Context) ([]ObservatorySnapshot, error) {
+	var snaps []ObservatorySnapshot
+	if err := c.getJSON(ctx, http.MethodGet, "/panel/api/server/xrayObservatory", &snaps); err != nil {
+		return nil, err
+	}
+	return snaps, nil
 }
 
 // drainAndClose fully consumes and closes a response body so the underlying

@@ -11,7 +11,10 @@ interval:
 1. **3X-UI Panel API** — authenticates with a session cookie and reads inbound / per-client
    traffic accounting.
 2. **Xray-core expvar API** — reads `observatory` outbound health and Go runtime memstats
-   from `/debug/vars`.
+   from `/debug/vars` (falls back to `GET /panel/api/server/xrayObservatory` when the
+   expvar observatory map is empty).
+3. **3X-UI balancer APIs** — `POST /panel/api/xray/` for balancer config and
+   `POST /panel/api/xray/balancerStatus` for the live selected outbound / fallback state.
 
 ## Metrics
 
@@ -33,7 +36,10 @@ interval:
 | --- | --- | --- | --- |
 | `xray_observatory_outbound_alive` | Gauge | `outbound_tag` | 1 if outbound is healthy |
 | `xray_observatory_outbound_delay_ms` | Gauge | `outbound_tag` | Outbound RTT latency (ms) |
-| `xray_observatory_outbound_selected` | Gauge | `outbound_tag` | 1 if this outbound is the leastPing live target (lowest delay among alive); other alive outbounds are fallback/standby |
+| `xray_balancer_outbound_selected` | Gauge | `balancer_tag`, `outbound_tag`, `via_fallback` | 1 if this outbound is the live balancer pick (`via_fallback=true` when it is the configured fallbackTag) |
+| `xray_balancer_on_fallback` | Gauge | `balancer_tag` | 1 if the live pick is the balancer's configured fallbackTag |
+| `xray_balancer_fallback_outbound` | Gauge | `balancer_tag`, `outbound_tag` | 1 for the outbound configured as `fallbackTag` |
+| `xray_balancer_outbound_role` | Gauge | `balancer_tag`, `outbound_tag` | 3=on fallback, 2=selected from pool, 1=standby, 0=configured fallback idle |
 | `xray_core_memory_alloc_bytes` | Gauge | – | Allocated heap bytes (`memstats.Alloc`) |
 | `xray_core_memory_sys_bytes` | Gauge | – | Memory obtained from OS (`memstats.Sys`) |
 | `xray_core_memory_heap_inuse_bytes` | Gauge | – | In-use heap bytes (`memstats.HeapInuse`) |

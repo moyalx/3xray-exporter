@@ -8,8 +8,8 @@ package collector
 import (
 	"context"
 	"log/slog"
-	"math"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -47,13 +47,18 @@ type Collector struct {
 	inboundDown      *prometheus.Desc
 
 	// --- xray engine metrics (xray_) ---
-	obsAlive    *prometheus.Desc
-	obsDelay    *prometheus.Desc
-	obsSelected *prometheus.Desc
-	memAlloc    *prometheus.Desc
-	memSys      *prometheus.Desc
-	memHeap     *prometheus.Desc
-	memNumGC    *prometheus.Desc
+	obsAlive *prometheus.Desc
+	obsDelay *prometheus.Desc
+	memAlloc *prometheus.Desc
+	memSys   *prometheus.Desc
+	memHeap  *prometheus.Desc
+	memNumGC *prometheus.Desc
+
+	// --- balancer live selection (from panel RoutingService) ---
+	balSelected     *prometheus.Desc
+	balOnFallback   *prometheus.Desc
+	balFallbackTag  *prometheus.Desc
+	balOutboundRole *prometheus.Desc
 }
 
 // New constructs a Collector. xray may be nil to disable the Xray data source.
@@ -121,11 +126,6 @@ func New(xui *client.XUIClient, xray *client.XrayClient, timeout time.Duration, 
 			"Round-trip latency of the outbound in milliseconds as measured by the observatory.",
 			[]string{"outbound_tag"}, nil,
 		),
-		obsSelected: prometheus.NewDesc(
-			namespaceXray+"_observatory_outbound_selected",
-			"1 if this outbound would be chosen by leastPing (lowest delay among alive outbounds), 0 otherwise. Alive non-selected outbounds are fallback/standby.",
-			[]string{"outbound_tag"}, nil,
-		),
 		memAlloc: prometheus.NewDesc(
 			namespaceXray+"_core_memory_alloc_bytes",
 			"Bytes of allocated heap objects in the Xray-core process (memstats.Alloc).",
@@ -146,6 +146,27 @@ func New(xui *client.XUIClient, xray *client.XrayClient, timeout time.Duration, 
 			"Number of completed GC cycles in Xray-core (memstats.NumGC).",
 			nil, nil,
 		),
+
+		balSelected: prometheus.NewDesc(
+			namespaceXray+"_balancer_outbound_selected",
+			"1 if this outbound is currently selected by the balancer (RoutingService principle target / override).",
+			[]string{"balancer_tag", "outbound_tag", "via_fallback"}, nil,
+		),
+		balOnFallback: prometheus.NewDesc(
+			namespaceXray+"_balancer_on_fallback",
+			"1 if the balancer's live selection is its configured fallbackTag.",
+			[]string{"balancer_tag"}, nil,
+		),
+		balFallbackTag: prometheus.NewDesc(
+			namespaceXray+"_balancer_fallback_outbound",
+			"1 for the outbound configured as this balancer's fallbackTag.",
+			[]string{"balancer_tag", "outbound_tag"}, nil,
+		),
+		balOutboundRole: prometheus.NewDesc(
+			namespaceXray+"_balancer_outbound_role",
+			"Balancer member role: 3=selected via fallback, 2=selected from pool, 1=standby pool member, 0=configured fallback idle.",
+			[]string{"balancer_tag", "outbound_tag"}, nil,
+		),
 	}
 }
 
@@ -164,11 +185,14 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.inboundDown
 	ch <- c.obsAlive
 	ch <- c.obsDelay
-	ch <- c.obsSelected
 	ch <- c.memAlloc
 	ch <- c.memSys
 	ch <- c.memHeap
 	ch <- c.memNumGC
+	ch <- c.balSelected
+	ch <- c.balOnFallback
+	ch <- c.balFallbackTag
+	ch <- c.balOutboundRole
 }
 
 // Collect polls both data sources concurrently and emits the resulting
@@ -266,7 +290,152 @@ func (c *Collector) collectXUI(ctx context.Context, ch chan<- prometheus.Metric)
 	}
 	ch <- prometheus.MustNewConstMetric(c.usersOnlineTotal, prometheus.GaugeValue, float64(len(online)))
 
+	// Balancer live selection is best-effort: a failure here must not hide the
+	// inbound/client metrics we already emitted.
+	if err := c.collectBalancers(ctx, ch); err != nil {
+		c.log.Warn("scraping balancer status failed", "err", err)
+	}
+
 	return nil
+}
+
+// collectBalancers reads routing.balancers from the Xray template and the live
+// picks from POST /panel/api/xray/balancerStatus.
+func (c *Collector) collectBalancers(ctx context.Context, ch chan<- prometheus.Metric) error {
+	settings, err := c.xui.XraySettings(ctx)
+	if err != nil {
+		return err
+	}
+	if settings.XraySetting.Routing == nil || len(settings.XraySetting.Routing.Balancers) == 0 {
+		return nil
+	}
+
+	balancers := settings.XraySetting.Routing.Balancers
+	tags := make([]string, 0, len(balancers))
+	for _, b := range balancers {
+		if b.Tag != "" {
+			tags = append(tags, b.Tag)
+		}
+	}
+	live, err := c.xui.BalancerStatuses(ctx, tags)
+	if err != nil {
+		return err
+	}
+
+	outboundTags := collectOutboundTags(settings)
+
+	for _, b := range balancers {
+		if b.Tag == "" {
+			continue
+		}
+		status := live[b.Tag]
+		selected := firstSelected(status)
+		viaFallback := b.FallbackTag != "" && selected != "" && selected == b.FallbackTag
+
+		ch <- prometheus.MustNewConstMetric(c.balOnFallback, prometheus.GaugeValue, boolToFloat(viaFallback), b.Tag)
+		if b.FallbackTag != "" {
+			ch <- prometheus.MustNewConstMetric(c.balFallbackTag, prometheus.GaugeValue, 1, b.Tag, b.FallbackTag)
+		}
+
+		if selected != "" {
+			ch <- prometheus.MustNewConstMetric(
+				c.balSelected, prometheus.GaugeValue, 1,
+				b.Tag, selected, strconv.FormatBool(viaFallback),
+			)
+		}
+
+		// Role for every pool member + configured fallback.
+		emitted := map[string]struct{}{}
+		emitRole := func(outbound string, role float64) {
+			if outbound == "" {
+				return
+			}
+			if _, ok := emitted[outbound]; ok {
+				return
+			}
+			emitted[outbound] = struct{}{}
+			ch <- prometheus.MustNewConstMetric(c.balOutboundRole, prometheus.GaugeValue, role, b.Tag, outbound)
+		}
+
+		for _, tag := range outboundTags {
+			if !matchesSelector(tag, b.Selector) {
+				continue
+			}
+			switch {
+			case tag == selected && viaFallback:
+				emitRole(tag, 3)
+			case tag == selected:
+				emitRole(tag, 2)
+			default:
+				emitRole(tag, 1)
+			}
+		}
+		if b.FallbackTag != "" {
+			switch {
+			case viaFallback:
+				emitRole(b.FallbackTag, 3)
+			case selected == b.FallbackTag:
+				emitRole(b.FallbackTag, 2)
+			default:
+				emitRole(b.FallbackTag, 0)
+			}
+		}
+		// Selected may be outside the known outbound list (e.g. subscription
+		// tag race); still emit its role.
+		if selected != "" {
+			if viaFallback {
+				emitRole(selected, 3)
+			} else {
+				emitRole(selected, 2)
+			}
+		}
+	}
+	return nil
+}
+
+func collectOutboundTags(settings *client.XraySettingsPayload) []string {
+	seen := map[string]struct{}{}
+	var tags []string
+	add := func(tag string) {
+		if tag == "" {
+			return
+		}
+		if _, ok := seen[tag]; ok {
+			return
+		}
+		seen[tag] = struct{}{}
+		tags = append(tags, tag)
+	}
+	for _, o := range settings.XraySetting.Outbounds {
+		add(o.Tag)
+	}
+	for _, tag := range settings.SubscriptionOutboundTags {
+		add(tag)
+	}
+	return tags
+}
+
+func firstSelected(status client.BalancerLiveStatus) string {
+	if status.Override != "" {
+		return status.Override
+	}
+	if len(status.Selected) > 0 {
+		return status.Selected[0]
+	}
+	return ""
+}
+
+// matchesSelector mirrors Xray's prefix match used by balancers/observatory.
+func matchesSelector(tag string, selectors []string) bool {
+	if len(selectors) == 0 {
+		return false
+	}
+	for _, sel := range selectors {
+		if sel == "" || strings.HasPrefix(tag, sel) {
+			return true
+		}
+	}
+	return false
 }
 
 // collectXray gathers observatory health and runtime memory metrics.
@@ -276,23 +445,29 @@ func (c *Collector) collectXray(ctx context.Context, ch chan<- prometheus.Metric
 		return err
 	}
 
-	// Mirror Xray leastPing: among alive outbounds, the one with the lowest
-	// probe delay is the live/selected target; other alive ones are fallback.
-	selectedTag := ""
-	minDelay := int64(math.MaxInt64)
-	for tag, status := range vars.Observatory {
-		outboundTag := observatoryTag(tag, status)
-		if status.Alive && (selectedTag == "" || status.Delay < minDelay) {
-			selectedTag = outboundTag
-			minDelay = status.Delay
-		}
-	}
-
+	emittedObs := false
 	for tag, status := range vars.Observatory {
 		outboundTag := observatoryTag(tag, status)
 		ch <- prometheus.MustNewConstMetric(c.obsAlive, prometheus.GaugeValue, boolToFloat(status.Alive), outboundTag)
 		ch <- prometheus.MustNewConstMetric(c.obsDelay, prometheus.GaugeValue, float64(status.Delay), outboundTag)
-		ch <- prometheus.MustNewConstMetric(c.obsSelected, prometheus.GaugeValue, boolToFloat(outboundTag == selectedTag && selectedTag != ""), outboundTag)
+		emittedObs = true
+	}
+
+	// When expvar has no observatory map (null/empty), fall back to the panel's
+	// cached snapshot from GET /panel/api/server/xrayObservatory.
+	if !emittedObs {
+		if snaps, snapErr := c.xui.ObservatorySnapshots(ctx); snapErr != nil {
+			c.log.Warn("panel observatory snapshot unavailable", "err", snapErr)
+		} else {
+			for _, s := range snaps {
+				tag := s.Tag
+				if tag == "" {
+					continue
+				}
+				ch <- prometheus.MustNewConstMetric(c.obsAlive, prometheus.GaugeValue, boolToFloat(s.Alive), tag)
+				ch <- prometheus.MustNewConstMetric(c.obsDelay, prometheus.GaugeValue, float64(s.Delay), tag)
+			}
+		}
 	}
 
 	ms := vars.MemStats

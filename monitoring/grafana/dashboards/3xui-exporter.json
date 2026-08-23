@@ -141,11 +141,11 @@
       "id": 27,
       "type": "stat",
       "title": "Selected outbound (live target)",
-      "description": "The alive outbound with the lowest observatory delay (leastPing). This is the live target; other alive outbounds are fallback/standby.",
-      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 12 },
+      "description": "Live pick from POST /panel/api/xray/balancerStatus (RoutingService). Orange means the balancer is on its configured fallbackTag.",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 12 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_selected{job=~\"$node\"} == 1", "legendFormat": "{{outbound_tag}}", "instant": true }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_selected{job=~\"$node\"} == 1", "legendFormat": "{{outbound_tag}}", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
@@ -158,6 +158,31 @@
           ],
           "noValue": "none selected",
           "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 29,
+      "type": "stat",
+      "title": "Fallback active?",
+      "description": "1 when the live selected outbound is the balancer's configured fallbackTag.",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_balancer_on_fallback{job=~\"$node\"})", "legendFormat": "{{balancer_tag}}", "instant": true }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "POOL", "color": "green" }, "1": { "text": "FALLBACK", "color": "orange" } } }
+          ],
+          "noValue": "n/a",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] }
         },
         "overrides": []
       }
@@ -225,12 +250,12 @@
     {
       "id": 24,
       "type": "stat",
-      "title": "Outbound role (selected / fallback / down)",
-      "description": "SELECTED = live leastPing target. FALLBACK = alive but not selected (standby). DOWN = unhealthy.",
+      "title": "Outbound role (selected / standby / fallback)",
+      "description": "SELECTED FROM POOL / SELECTED VIA FALLBACK / STANDBY / FALLBACK IDLE. From balancerStatus + configured fallbackTag.",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"} * (xray_observatory_outbound_selected{job=~\"$node\"} + 1)", "legendFormat": "{{outbound_tag}}", "instant": true }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_role{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}", "instant": true }
       ],
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
@@ -240,12 +265,13 @@
         "defaults": {
           "mappings": [
             { "type": "value", "options": {
-              "0": { "text": "DOWN", "color": "red" },
-              "1": { "text": "FALLBACK", "color": "orange" },
-              "2": { "text": "SELECTED", "color": "green" }
+              "0": { "text": "FALLBACK IDLE", "color": "purple" },
+              "1": { "text": "STANDBY", "color": "blue" },
+              "2": { "text": "SELECTED", "color": "green" },
+              "3": { "text": "ON FALLBACK", "color": "orange" }
             } }
           ],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 1 }, { "color": "green", "value": 2 } ] }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "blue", "value": 1 }, { "color": "green", "value": 2 }, { "color": "orange", "value": 3 } ] }
         },
         "overrides": []
       }
@@ -288,27 +314,50 @@
       }
     },
     {
-      "id": 28,
-      "type": "state-timeline",
-      "title": "Selected vs fallback over time",
-      "description": "SELECTED = live target. FALLBACK = alive standby. DOWN = unhealthy / not selected.",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 },
+      "id": 30,
+      "type": "stat",
+      "title": "Configured fallback outbound",
+      "description": "The balancer fallbackTag from the Xray template (used when the pool has no healthy pick).",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 24 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"} * (xray_observatory_outbound_selected{job=~\"$node\"} + 1)", "legendFormat": "{{outbound_tag}}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_fallback_outbound{job=~\"$node\"} == 1", "legendFormat": "{{outbound_tag}}", "instant": true }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "colorMode": "background", "graphMode": "none", "textMode": "name", "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "none configured",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "orange", "value": 1 } ] }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 28,
+      "type": "state-timeline",
+      "title": "Selected / standby / fallback over time",
+      "description": "Roles from balancerStatus. ON FALLBACK means the live pick is the configured fallbackTag.",
+      "gridPos": { "h": 7, "w": 16, "x": 8, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_role{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}" }
       ],
       "options": { "showValue": "never", "mergeValues": true, "alignValue": "center", "rowHeight": 0.9, "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
       "fieldConfig": {
         "defaults": {
           "mappings": [
             { "type": "value", "options": {
-              "0": { "text": "DOWN", "color": "red" },
-              "1": { "text": "FALLBACK", "color": "orange" },
-              "2": { "text": "SELECTED", "color": "green" }
+              "0": { "text": "FALLBACK IDLE", "color": "purple" },
+              "1": { "text": "STANDBY", "color": "blue" },
+              "2": { "text": "SELECTED", "color": "green" },
+              "3": { "text": "ON FALLBACK", "color": "orange" }
             } }
           ],
           "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "orange", "value": 1 }, { "color": "green", "value": 2 } ] }
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "blue", "value": 1 }, { "color": "green", "value": 2 }, { "color": "orange", "value": 3 } ] }
         },
         "overrides": []
       }
@@ -317,7 +366,7 @@
       "id": 25,
       "type": "timeseries",
       "title": "Average outbound latency over time",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 24 },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 31 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "avg latency" },
@@ -331,7 +380,7 @@
       "id": 26,
       "type": "state-timeline",
       "title": "Outbound up/down over time",
-      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 31 },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 31 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}" }
