@@ -359,7 +359,7 @@
       "id": 27,
       "type": "stat",
       "title": "Selected outbound",
-      "description": "Live target: balancer pick when available, otherwise lowest-delay alive observatory outbound (leastPing).",
+      "description": "Alive outbound with the lowest observatory delay (leastPing). Uses xray_outbound_selected when the exporter provides it.",
       "gridPos": {
         "h": 4,
         "w": 6,
@@ -377,7 +377,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (outbound_tag) (xray_outbound_selected{job=~\"$node\"}) == 1",
+          "expr": "max by (outbound_tag) (xray_outbound_selected{job=~\"$node\"}) == 1 or on(outbound_tag) max by (outbound_tag) ((\n  xray_observatory_outbound_delay_ms{job=~\"$node\"}\n  == on(job, instance) group_left()\n    min by (job, instance) (\n      xray_observatory_outbound_delay_ms{job=~\"$node\"}\n        and on(job, instance, outbound_tag)\n          (xray_observatory_outbound_alive{job=~\"$node\"} == 1)\n    )\n) and on(job, instance, outbound_tag) (xray_observatory_outbound_alive{job=~\"$node\"} == 1))",
           "legendFormat": "{{outbound_tag}}",
           "instant": true
         }
@@ -493,7 +493,7 @@
       "id": 30,
       "type": "stat",
       "title": "Configured fallback",
-      "description": "Balancer fallbackTag from Xray template. Shows none when no balancer is configured.",
+      "description": "Only set when Xray has a routing balancer with fallbackTag. Purple/empty means this node has no balancer fallback configured.",
       "gridPos": {
         "h": 4,
         "w": 3,
@@ -531,7 +531,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "noValue": "none",
+          "noValue": "none (no balancer)",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -792,7 +792,7 @@
       "id": 24,
       "type": "stat",
       "title": "Outbound role",
-      "description": "SELECTED / STANDBY / DOWN from observatory. Balancer adds ON FALLBACK when configured.",
+      "description": "SELECTED = lowest-delay alive; STANDBY = alive; DOWN = dead. Balancer ON FALLBACK used when available.",
       "gridPos": {
         "h": 8,
         "w": 8,
@@ -810,7 +810,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"})",
+          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"}) or on(outbound_tag) (max by (outbound_tag) (\n  xray_observatory_outbound_alive{job=~\"$node\"}\n  + on(job, instance, outbound_tag) group_left()\n  (\n    (\n      (\n        xray_observatory_outbound_delay_ms{job=~\"$node\"}\n        == on(job, instance) group_left()\n          min by (job, instance) (\n            xray_observatory_outbound_delay_ms{job=~\"$node\"}\n              and on(job, instance, outbound_tag)\n                (xray_observatory_outbound_alive{job=~\"$node\"} == 1)\n          )\n      )\n      and on(job, instance, outbound_tag)\n        (xray_observatory_outbound_alive{job=~\"$node\"} == 1)\n    ) * 0 + 1\n  )\n))",
           "legendFormat": "{{outbound_tag}}",
           "instant": true
         }
@@ -835,7 +835,7 @@
               "type": "value",
               "options": {
                 "0": {
-                  "text": "DOWN / IDLE",
+                  "text": "DOWN",
                   "color": "red"
                 },
                 "1": {
@@ -991,7 +991,7 @@
       "id": 28,
       "type": "state-timeline",
       "title": "Selected / standby / down over time",
-      "description": "Balancer roles when present, else observatory roles.",
+      "description": "Derived from observatory alive+delay (works without balancer metrics).",
       "gridPos": {
         "h": 7,
         "w": 12,
@@ -1009,7 +1009,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"})",
+          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"}) or on(outbound_tag) (max by (outbound_tag) (\n  xray_observatory_outbound_alive{job=~\"$node\"}\n  + on(job, instance, outbound_tag) group_left()\n  (\n    (\n      (\n        xray_observatory_outbound_delay_ms{job=~\"$node\"}\n        == on(job, instance) group_left()\n          min by (job, instance) (\n            xray_observatory_outbound_delay_ms{job=~\"$node\"}\n              and on(job, instance, outbound_tag)\n                (xray_observatory_outbound_alive{job=~\"$node\"} == 1)\n          )\n      )\n      and on(job, instance, outbound_tag)\n        (xray_observatory_outbound_alive{job=~\"$node\"} == 1)\n    ) * 0 + 1\n  )\n))",
           "legendFormat": "{{outbound_tag}}"
         }
       ],
@@ -1231,7 +1231,7 @@
       "id": 31,
       "type": "timeseries",
       "title": "Outbound traffic rate",
-      "description": "Xray expvar stats, else panel DB counters from GET /panel/api/xray/getOutboundsTraffic.",
+      "description": "Needs exporter build with traffic metrics. Expvar stats.outbound and/or GET /panel/api/xray/getOutboundsTraffic. Empty until that build is deployed on this node.",
       "gridPos": {
         "h": 7,
         "w": 12,
@@ -1249,8 +1249,9 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(xray_outbound_down_bytes{job=~\"$node\"}[$__rate_interval]) or rate(xray_panel_outbound_down_bytes{job=~\"$node\"}[$__rate_interval])",
-          "legendFormat": "{{outbound_tag}} down"
+          "expr": "sum by (outbound_tag) (rate(xray_outbound_down_bytes{job=~\"$node\"}[$__rate_interval]))",
+          "legendFormat": "{{outbound_tag}} down (expvar)",
+          "instant": false
         },
         {
           "refId": "B",
@@ -1258,8 +1259,29 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(xray_outbound_up_bytes{job=~\"$node\"}[$__rate_interval]) or rate(xray_panel_outbound_up_bytes{job=~\"$node\"}[$__rate_interval])",
-          "legendFormat": "{{outbound_tag}} up"
+          "expr": "sum by (outbound_tag) (rate(xray_outbound_up_bytes{job=~\"$node\"}[$__rate_interval]))",
+          "legendFormat": "{{outbound_tag}} up (expvar)",
+          "instant": false
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (outbound_tag) (rate(xray_panel_outbound_down_bytes{job=~\"$node\"}[$__rate_interval]))",
+          "legendFormat": "{{outbound_tag}} down (panel)",
+          "instant": false
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (outbound_tag) (rate(xray_panel_outbound_up_bytes{job=~\"$node\"}[$__rate_interval]))",
+          "legendFormat": "{{outbound_tag}} up (panel)",
+          "instant": false
         }
       ],
       "options": {
@@ -1286,7 +1308,8 @@
             "fillOpacity": 10,
             "showPoints": "never",
             "spanNulls": true
-          }
+          },
+          "noValue": "deploy new exporter"
         },
         "overrides": []
       }
