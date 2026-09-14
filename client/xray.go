@@ -25,8 +25,22 @@ type XrayVars struct {
 
 	// Observatory maps an outbound tag to its latest health probe result.
 	// The observatory feature periodically measures each outbound's liveness
-	// and latency.
+	// and latency. May be null when observatory is not configured.
 	Observatory map[string]ObservatoryStatus `json:"observatory"`
+
+	// Stats holds cumulative traffic counters published by Xray-core.
+	Stats XrayStats `json:"stats"`
+}
+
+// XrayStats is the expvar "stats" object. We only model outbound counters.
+type XrayStats struct {
+	Outbound map[string]OutboundTraffic `json:"outbound"`
+}
+
+// OutboundTraffic is cumulative uplink/downlink bytes for one outbound tag.
+type OutboundTraffic struct {
+	Uplink   int64 `json:"uplink"`
+	Downlink int64 `json:"downlink"`
 }
 
 // MemStats is a trimmed subset of runtime.MemStats exposed via expvar.

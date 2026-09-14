@@ -143,6 +143,15 @@ type ObservatorySnapshot struct {
 	UpdatedAt    int64  `json:"updatedAt"`
 }
 
+// OutboundTrafficRow is one row from GET /panel/api/xray/getOutboundsTraffic.
+type OutboundTrafficRow struct {
+	ID    int    `json:"id"`
+	Tag   string `json:"tag"`
+	Up    int64  `json:"up"`
+	Down  int64  `json:"down"`
+	Total int64  `json:"total"`
+}
+
 // XUIClient is a thread-safe client for the 3X-UI panel API.
 //
 // It supports the two authentication modes of 3X-UI v3+:
@@ -529,6 +538,17 @@ func (c *XUIClient) ObservatorySnapshots(ctx context.Context) ([]ObservatorySnap
 		return nil, err
 	}
 	return snaps, nil
+}
+
+// OutboundsTraffic returns cumulative per-outbound traffic from
+// GET /panel/api/xray/getOutboundsTraffic. This is a cheap DB read (not a live
+// probe); do not confuse it with POST /testOutbound which spins up a temp core.
+func (c *XUIClient) OutboundsTraffic(ctx context.Context) ([]OutboundTrafficRow, error) {
+	var rows []OutboundTrafficRow
+	if err := c.getJSON(ctx, http.MethodGet, "/panel/api/xray/getOutboundsTraffic", &rows); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // drainAndClose fully consumes and closes a response body so the underlying

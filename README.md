@@ -36,10 +36,16 @@ interval:
 | --- | --- | --- | --- |
 | `xray_observatory_outbound_alive` | Gauge | `outbound_tag` | 1 if outbound is healthy |
 | `xray_observatory_outbound_delay_ms` | Gauge | `outbound_tag` | Outbound RTT latency (ms) |
-| `xray_balancer_outbound_selected` | Gauge | `balancer_tag`, `outbound_tag`, `via_fallback` | 1 if this outbound is the live balancer pick (`via_fallback=true` when it is the configured fallbackTag) |
+| `xray_outbound_selected` | Gauge | `outbound_tag`, `source` | 1 if preferred live target (`source=balancer` or `observatory`) |
+| `xray_outbound_role` | Gauge | `outbound_tag` | 2=selected, 1=alive standby, 0=down (observatory view) |
+| `xray_balancer_outbound_selected` | Gauge | `balancer_tag`, `outbound_tag`, `via_fallback` | 1 if this outbound is the live balancer pick |
 | `xray_balancer_on_fallback` | Gauge | `balancer_tag` | 1 if the live pick is the balancer's configured fallbackTag |
 | `xray_balancer_fallback_outbound` | Gauge | `balancer_tag`, `outbound_tag` | 1 for the outbound configured as `fallbackTag` |
 | `xray_balancer_outbound_role` | Gauge | `balancer_tag`, `outbound_tag` | 3=on fallback, 2=selected from pool, 1=standby, 0=configured fallback idle |
+| `xray_outbound_up_bytes` | Counter | `outbound_tag` | Cumulative uplink bytes from Xray expvar stats |
+| `xray_outbound_down_bytes` | Counter | `outbound_tag` | Cumulative downlink bytes from Xray expvar stats |
+| `xray_panel_outbound_up_bytes` | Counter | `outbound_tag` | Cumulative uplink bytes from panel DB |
+| `xray_panel_outbound_down_bytes` | Counter | `outbound_tag` | Cumulative downlink bytes from panel DB |
 | `xray_core_memory_alloc_bytes` | Gauge | – | Allocated heap bytes (`memstats.Alloc`) |
 | `xray_core_memory_sys_bytes` | Gauge | – | Memory obtained from OS (`memstats.Sys`) |
 | `xray_core_memory_heap_inuse_bytes` | Gauge | – | In-use heap bytes (`memstats.HeapInuse`) |

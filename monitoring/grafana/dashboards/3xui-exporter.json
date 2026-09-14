@@ -1,11 +1,20 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "graphTooltip": 1,
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["3x-ui", "xray", "vpn"],
-  "time": { "from": "now-6h", "to": "now" },
+  "tags": [
+    "3x-ui",
+    "xray",
+    "vpn"
+  ],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timezone": "browser",
   "title": "3X-UI Exporter",
   "uid": "3xui-exporter",
@@ -16,9 +25,16 @@
         "label": "Node",
         "description": "Select which 3X-UI exporter (Prometheus job) to view.",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "definition": "label_values(xui_exporter_up, job)",
-        "query": { "qryType": 1, "query": "label_values(xui_exporter_up, job)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "query": {
+          "qryType": 1,
+          "query": "label_values(xui_exporter_up, job)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
         "refresh": 1,
         "sort": 1,
         "includeAll": false,
@@ -31,8 +47,17 @@
         "description": "Outbound probe delays above this are treated as a failed check and excluded from latency panels.",
         "type": "textbox",
         "query": "10000",
-        "current": { "text": "10000", "value": "10000" },
-        "options": [ { "text": "10000", "value": "10000", "selected": true } ],
+        "current": {
+          "text": "10000",
+          "value": "10000"
+        },
+        "options": [
+          {
+            "text": "10000",
+            "value": "10000",
+            "selected": true
+          }
+        ],
         "hide": 0
       }
     ]
@@ -44,28 +69,81 @@
       "title": "Overview",
       "collapsed": false,
       "datasource": null,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "panels": []
     },
     {
       "id": 1,
       "type": "stat",
       "title": "Exporter Up",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_exporter_up{job=~\"$node\"}" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xui_exporter_up{job=~\"$node\"}"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "background", "graphMode": "none", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -74,90 +152,265 @@
       "id": 2,
       "type": "stat",
       "title": "Online Users",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total{job=~\"$node\"}" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xui_users_online_total{job=~\"$node\"}"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 3,
       "type": "stat",
       "title": "Enabled Clients",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "count(xui_user_enabled{job=~\"$node\"} == 1)", "instant": true }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "count(xui_user_enabled{job=~\"$node\"} == 1)",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "none", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 4,
       "type": "stat",
       "title": "Total Traffic (used)",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xui_inbound_up_bytes{job=~\"$node\"}) + sum(xui_inbound_down_bytes{job=~\"$node\"})" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(xui_inbound_up_bytes{job=~\"$node\"}) + sum(xui_inbound_down_bytes{job=~\"$node\"})"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 11,
       "type": "timeseries",
       "title": "Online users over time",
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xui_users_online_total{job=~\"$node\"}", "legendFormat": "online" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xui_users_online_total{job=~\"$node\"}",
+          "legendFormat": "online"
+        }
       ],
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single", "sort": "none" } },
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 20, "showPoints": "never" } }, "overrides": [] }
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
     },
-
     {
       "id": 101,
       "type": "row",
       "title": "Outbounds",
       "collapsed": false,
       "datasource": null,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 11 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
       "panels": []
     },
     {
       "id": 27,
       "type": "stat",
-      "title": "Selected outbound (live target)",
-      "description": "Live pick from POST /panel/api/xray/balancerStatus (RoutingService). Orange means the balancer is on its configured fallbackTag.",
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Selected outbound",
+      "description": "Live target: balancer pick when available, otherwise lowest-delay alive observatory outbound (leastPing).",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_selected{job=~\"$node\"} == 1", "legendFormat": "{{outbound_tag}}", "instant": true }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (outbound_tag) (xray_outbound_selected{job=~\"$node\"}) == 1",
+          "legendFormat": "{{outbound_tag}}",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
-        "colorMode": "background", "graphMode": "none", "textMode": "name", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "name",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            { "type": "special", "options": { "match": "null", "result": { "text": "none", "color": "red" } } }
-          ],
-          "noValue": "none selected",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+          "noValue": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -166,23 +419,132 @@
       "id": 29,
       "type": "stat",
       "title": "Fallback active?",
-      "description": "1 when the live selected outbound is the balancer's configured fallbackTag.",
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "YES when a balancer is using its configured fallbackTag. NO when unused or no balancer.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_balancer_on_fallback{job=~\"$node\"})", "legendFormat": "{{balancer_tag}}", "instant": true }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(xray_balancer_on_fallback{job=~\"$node\"}) or on() vector(0)",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "background", "graphMode": "none", "textMode": "value", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "POOL", "color": "green" }, "1": { "text": "FALLBACK", "color": "orange" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "NO",
+                  "color": "green"
+                },
+                "1": {
+                  "text": "YES",
+                  "color": "orange"
+                }
+              }
+            }
           ],
-          "noValue": "n/a",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 1 } ] }
+          "noValue": "NO",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 30,
+      "type": "stat",
+      "title": "Configured fallback",
+      "description": "Balancer fallbackTag from Xray template. Shows none when no balancer is configured.",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xray_balancer_fallback_outbound{job=~\"$node\"} == 1",
+          "legendFormat": "{{outbound_tag}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "name",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "noValue": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "semi-dark-purple",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -190,88 +552,329 @@
     {
       "id": 20,
       "type": "stat",
-      "title": "Avg outbound latency",
-      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Avg latency",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 200 }, { "color": "red", "value": 500 } ] } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "n/a",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 200
+              },
+              {
+                "color": "red",
+                "value": 500
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 21,
       "type": "stat",
-      "title": "Max outbound latency",
-      "gridPos": { "h": 4, "w": 3, "x": 15, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Max latency",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 300 }, { "color": "red", "value": 700 } ] } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "n/a",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 700
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 22,
       "type": "stat",
-      "title": "Min outbound latency",
-      "gridPos": { "h": 4, "w": 3, "x": 18, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Min latency",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "area", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "ms", "noValue": "n/a", "color": { "mode": "fixed", "fixedColor": "green" } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "noValue": "n/a",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 23,
       "type": "stat",
-      "title": "Outbounds Alive",
-      "gridPos": { "h": 4, "w": 3, "x": 21, "y": 12 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Alive",
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 12
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(xray_observatory_outbound_alive{job=~\"$node\"})" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(xray_observatory_outbound_alive{job=~\"$node\"})"
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "colorMode": "value", "graphMode": "none", "textMode": "auto", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto"
       },
-      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] }
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 24,
       "type": "stat",
-      "title": "Outbound role (selected / standby / fallback)",
-      "description": "SELECTED FROM POOL / SELECTED VIA FALLBACK / STANDBY / FALLBACK IDLE. From balancerStatus + configured fallbackTag.",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Outbound role",
+      "description": "SELECTED / STANDBY / DOWN from observatory. Balancer adds ON FALLBACK when configured.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_role{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}", "instant": true }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"})",
+          "legendFormat": "{{outbound_tag}}",
+          "instant": true
+        }
       ],
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
-        "colorMode": "background", "graphMode": "none", "textMode": "value_and_name", "justifyMode": "auto"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": {
-              "0": { "text": "FALLBACK IDLE", "color": "purple" },
-              "1": { "text": "STANDBY", "color": "blue" },
-              "2": { "text": "SELECTED", "color": "green" },
-              "3": { "text": "ON FALLBACK", "color": "orange" }
-            } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN / IDLE",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "STANDBY",
+                  "color": "blue"
+                },
+                "2": {
+                  "text": "SELECTED",
+                  "color": "green"
+                },
+                "3": {
+                  "text": "ON FALLBACK",
+                  "color": "orange"
+                }
+              }
+            }
           ],
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "blue", "value": 1 }, { "color": "green", "value": 2 }, { "color": "orange", "value": 3 } ] }
+          "noValue": "no outbounds",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              },
+              {
+                "color": "orange",
+                "value": 3
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -280,16 +883,54 @@
       "id": 7,
       "type": "timeseries",
       "title": "Outbound latency per outbound (+ average)",
-      "description": "Latency for every probed outbound. Spikes above Max delay are dropped. Lines stay visible for all outbounds (no legend click needed).",
-      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "description": "All observatory-probed outbounds. Only tags Xray probes appear \u2014 expand observatory subjectSelector / balancer to include more.",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (outbound_tag) (xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "{{outbound_tag}}", "interval": "", "instant": false },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "average", "instant": false }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (outbound_tag) (xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)",
+          "legendFormat": "{{outbound_tag}}",
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)",
+          "legendFormat": "average",
+          "instant": false
+        }
       ],
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max", "lastNotNull"], "showLegend": true },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "fieldConfig": {
         "defaults": {
@@ -303,61 +944,216 @@
             "showPoints": "always",
             "pointSize": 4,
             "spanNulls": true,
-            "insertNulls": false,
-            "axisBorderShow": false
+            "insertNulls": false
           },
-          "color": { "mode": "palette-classic" }
+          "color": {
+            "mode": "palette-classic"
+          }
         },
         "overrides": [
-          { "matcher": { "id": "byName", "options": "average" }, "properties": [ { "id": "custom.lineWidth", "value": 3 }, { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [ 8, 6 ] } }, { "id": "custom.showPoints", "value": "never" }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] }
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "average"
+            },
+            "properties": [
+              {
+                "id": "custom.lineWidth",
+                "value": 3
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    8,
+                    6
+                  ]
+                }
+              },
+              {
+                "id": "custom.showPoints",
+                "value": "never"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          }
         ]
-      }
-    },
-    {
-      "id": 30,
-      "type": "stat",
-      "title": "Configured fallback outbound",
-      "description": "The balancer fallbackTag from the Xray template (used when the pool has no healthy pick).",
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 24 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_fallback_outbound{job=~\"$node\"} == 1", "legendFormat": "{{outbound_tag}}", "instant": true }
-      ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
-        "colorMode": "background", "graphMode": "none", "textMode": "name", "justifyMode": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "noValue": "none configured",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "orange", "value": 1 } ] }
-        },
-        "overrides": []
       }
     },
     {
       "id": 28,
       "type": "state-timeline",
-      "title": "Selected / standby / fallback over time",
-      "description": "Roles from balancerStatus. ON FALLBACK means the live pick is the configured fallbackTag.",
-      "gridPos": { "h": 7, "w": 16, "x": 8, "y": 24 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Selected / standby / down over time",
+      "description": "Balancer roles when present, else observatory roles.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_balancer_outbound_role{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max by (outbound_tag) (xray_balancer_outbound_role{job=~\"$node\"}) or on(outbound_tag) max by (outbound_tag) (xray_outbound_role{job=~\"$node\"})",
+          "legendFormat": "{{outbound_tag}}"
+        }
       ],
-      "options": { "showValue": "never", "mergeValues": true, "alignValue": "center", "rowHeight": 0.9, "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": {
-              "0": { "text": "FALLBACK IDLE", "color": "purple" },
-              "1": { "text": "STANDBY", "color": "blue" },
-              "2": { "text": "SELECTED", "color": "green" },
-              "3": { "text": "ON FALLBACK", "color": "orange" }
-            } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "STANDBY",
+                  "color": "blue"
+                },
+                "2": {
+                  "text": "SELECTED",
+                  "color": "green"
+                },
+                "3": {
+                  "text": "ON FALLBACK",
+                  "color": "orange"
+                }
+              }
+            }
           ],
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "purple", "value": null }, { "color": "blue", "value": 1 }, { "color": "green", "value": 2 }, { "color": "orange", "value": 3 } ] }
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "blue",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 2
+              },
+              {
+                "color": "orange",
+                "value": 3
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 26,
+      "type": "state-timeline",
+      "title": "Outbound up/down over time",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xray_observatory_outbound_alive{job=~\"$node\"}",
+          "legendFormat": "{{outbound_tag}}"
+        }
+      ],
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "center",
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "ALIVE",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         },
         "overrides": []
       }
@@ -366,98 +1162,360 @@
       "id": 25,
       "type": "timeseries",
       "title": "Average outbound latency over time",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 31 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 31
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "avg latency" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "max latency" },
-        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)", "legendFormat": "min latency" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "avg(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)",
+          "legendFormat": "avg latency"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)",
+          "legendFormat": "max latency"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "min(xray_observatory_outbound_delay_ms{job=~\"$node\"} <= $max_delay_ms)",
+          "legendFormat": "min latency"
+        }
       ],
-      "options": { "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "showPoints": "never", "spanNulls": true } }, "overrides": [] }
-    },
-    {
-      "id": 26,
-      "type": "state-timeline",
-      "title": "Outbound up/down over time",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 31 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_observatory_outbound_alive{job=~\"$node\"}", "legendFormat": "{{outbound_tag}}" }
-      ],
-      "options": { "showValue": "never", "mergeValues": true, "alignValue": "center", "rowHeight": 0.9, "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "single", "sort": "none" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "ALIVE", "color": "green" } } }
-          ],
-          "color": { "mode": "thresholds" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+          "unit": "ms",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
         },
         "overrides": []
       }
     },
-
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "Outbound traffic rate",
+      "description": "Xray expvar stats, else panel DB counters from GET /panel/api/xray/getOutboundsTraffic.",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 31
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(xray_outbound_down_bytes{job=~\"$node\"}[$__rate_interval]) or rate(xray_panel_outbound_down_bytes{job=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "{{outbound_tag}} down"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(xray_outbound_up_bytes{job=~\"$node\"}[$__rate_interval]) or rate(xray_panel_outbound_up_bytes{job=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "{{outbound_tag}} up"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      }
+    },
     {
       "id": 102,
       "type": "row",
       "title": "Clients & Traffic",
       "collapsed": false,
       "datasource": null,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
       "panels": []
     },
     {
       "id": 6,
       "type": "timeseries",
       "title": "Inbound throughput (per inbound)",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 39
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_down_bytes{job=~\"$node\"}[$__rate_interval])", "legendFormat": "{{inbound_tag}} down" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(xui_inbound_up_bytes{job=~\"$node\"}[$__rate_interval])", "legendFormat": "{{inbound_tag}} up" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(xui_inbound_down_bytes{job=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "{{inbound_tag}} down"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(xui_inbound_up_bytes{job=~\"$node\"}[$__rate_interval])",
+          "legendFormat": "{{inbound_tag}} up"
+        }
       ],
-      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "fieldConfig": { "defaults": { "unit": "Bps", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "id": 8,
       "type": "table",
       "title": "Top 20 clients by traffic used",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 39
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "topk(20, max by (email) (xui_user_traffic_used_bytes{job=~\"$node\"}))", "instant": true, "format": "table" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "topk(20, max by (email) (xui_user_traffic_used_bytes{job=~\"$node\"}))",
+          "instant": true,
+          "format": "table"
+        }
       ],
       "transformations": [
-        { "id": "organize", "options": { "excludeByName": { "Time": true }, "indexByName": {}, "renameByName": { "email": "Client", "Value": "Used" } } },
-        { "id": "sortBy", "options": { "fields": {}, "sort": [ { "field": "Used", "desc": true } ] } }
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "email": "Client",
+              "Value": "Used"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "field": "Used",
+                "desc": true
+              }
+            ]
+          }
+        }
       ],
-      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "Used" }, "properties": [ { "id": "unit", "value": "bytes" } ] } ] }
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          }
+        ]
+      }
     },
-
     {
       "id": 103,
       "type": "row",
       "title": "Xray Engine",
       "collapsed": false,
       "datasource": null,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
       "panels": []
     },
     {
       "id": 10,
       "type": "timeseries",
       "title": "Xray-core memory",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 48 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_alloc_bytes{job=~\"$node\"}", "legendFormat": "alloc" },
-        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_sys_bytes{job=~\"$node\"}", "legendFormat": "sys" },
-        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "xray_core_memory_heap_inuse_bytes{job=~\"$node\"}", "legendFormat": "heap in-use" }
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xray_core_memory_alloc_bytes{job=~\"$node\"}",
+          "legendFormat": "alloc"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xray_core_memory_sys_bytes{job=~\"$node\"}",
+          "legendFormat": "sys"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "xray_core_memory_heap_inuse_bytes{job=~\"$node\"}",
+          "legendFormat": "heap in-use"
+        }
       ],
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "showPoints": "never" } }, "overrides": [] }
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      }
     }
   ]
 }
